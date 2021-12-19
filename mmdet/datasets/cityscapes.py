@@ -42,12 +42,12 @@ class CityscapesDataset(CocoDataset):
     def _filter_imgs(self, min_size=32):
         """Filter images too small or without ground truths."""
         valid_inds = []
-        ids_with_ann = set(_['image_id'] for _ in self.coco.anns.values())
+        ids_with_ann = {_['image_id'] for _ in self.coco.anns.values()}
         for i, img_info in enumerate(self.img_infos):
             img_id = img_info['id']
             ann_ids = self.coco.getAnnIds(imgIds=[img_id])
             ann_info = self.coco.loadAnns(ann_ids)
-            all_iscrowd = all([_['iscrowd'] for _ in ann_info])
+            all_iscrowd = all(_['iscrowd'] for _ in ann_info)
             if self.filter_empty_gt and (self.img_ids[i] not in ids_with_ann
                                          or all_iscrowd):
                 continue
@@ -72,7 +72,7 @@ class CityscapesDataset(CocoDataset):
         gt_bboxes_ignore = []
         gt_masks_ann = []
 
-        for i, ann in enumerate(ann_info):
+        for ann in ann_info:
             if ann.get('ignore', False):
                 continue
             x1, y1, w, h = ann['bbox']
@@ -226,13 +226,13 @@ class CityscapesDataset(CocoDataset):
         Returns:
             dict[str: float]
         """
-        eval_results = dict()
+        eval_results = {}
         metrics = metric.copy() if isinstance(metric, list) else [metric]
 
         if 'panoptic' in metrics:
             eval_results.update(
                 self._evaluate_panoptic(results, outfile_prefix, logger))
-  
+
         if 'cityscapes' in metrics:
             eval_results.update(
                 self._evaluate_cityscapes(results, outfile_prefix, logger))
@@ -290,9 +290,10 @@ class CityscapesDataset(CocoDataset):
         assert len(groundTruthImgList), \
             'Cannot find ground truth images in {}.'.format(
                 CSEval.args.groundTruthSearch)
-        predictionImgList = []
-        for gt in groundTruthImgList:
-            predictionImgList.append(CSEval.getPrediction(gt, CSEval.args))
+        predictionImgList = [
+            CSEval.getPrediction(gt, CSEval.args) for gt in groundTruthImgList
+        ]
+
         CSEval_results = CSEval.evaluateImgLists(predictionImgList,
                                                  groundTruthImgList,
                                                  CSEval.args)['averages']

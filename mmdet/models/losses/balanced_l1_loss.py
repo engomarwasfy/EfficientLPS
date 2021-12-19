@@ -18,12 +18,10 @@ def balanced_l1_loss(pred,
 
     diff = torch.abs(pred - target)
     b = np.e**(gamma / alpha) - 1
-    loss = torch.where(
+    return torch.where(
         diff < beta, alpha / b *
         (b * diff + 1) * torch.log(b * diff / beta + 1) - alpha * diff,
         gamma * diff + gamma / b - alpha * beta)
-
-    return loss
 
 
 @LOSSES.register_module
@@ -54,9 +52,8 @@ class BalancedL1Loss(nn.Module):
                 reduction_override=None,
                 **kwargs):
         assert reduction_override in (None, 'none', 'mean', 'sum')
-        reduction = (
-            reduction_override if reduction_override else self.reduction)
-        loss_bbox = self.loss_weight * balanced_l1_loss(
+        reduction = reduction_override or self.reduction
+        return self.loss_weight * balanced_l1_loss(
             pred,
             target,
             weight,
@@ -66,4 +63,3 @@ class BalancedL1Loss(nn.Module):
             reduction=reduction,
             avg_factor=avg_factor,
             **kwargs)
-        return loss_bbox

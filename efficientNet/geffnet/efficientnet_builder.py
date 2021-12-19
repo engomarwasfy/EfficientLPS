@@ -97,8 +97,7 @@ def drop_connect(inputs, training: bool = False, drop_connect_rate: float = 0.):
     random_tensor = keep_prob + torch.rand(
         (inputs.size()[0], 1, 1, 1), dtype=inputs.dtype, device=inputs.device)
     random_tensor.floor_()  # binarize
-    output = inputs.div(keep_prob) * random_tensor
-    return output
+    return inputs.div(keep_prob) * random_tensor
 
 
 class SqueezeExcite(nn.Module):
@@ -411,7 +410,7 @@ class EfficientNetBuilder:
                 block = CondConvResidual(**ba)
             else:
                 block = InvertedResidual(**ba)
-        elif bt == 'ds' or bt == 'dsa':
+        elif bt in ['ds', 'dsa']:
             ba['drop_connect_rate'] = self.drop_connect_rate * self.block_idx / self.block_count
             ba['se_kwargs'] = self.se_kwargs
             block = DepthwiseSeparableConv(**ba)
@@ -448,11 +447,11 @@ class EfficientNetBuilder:
              List of block stacks (each stack wrapped in nn.Sequential)
         """
         self.in_chs = in_chs
-        self.block_count = sum([len(x) for x in block_args])
+        self.block_count = sum(len(x) for x in block_args)
         self.block_idx = 0
         blocks = []
         # outer list of block_args defines the stacks ('stages' by some conventions)
-        for stack_idx, stack in enumerate(block_args):
+        for stack in block_args:
             assert isinstance(stack, list)
             stack = self._make_stack(stack)
             blocks.append(stack)
@@ -505,12 +504,12 @@ def _decode_block_str(block_str):
             # activation fn
             key = op[0]
             v = op[1:]
-            if v == 're':
-                value = get_act_layer('relu')
+            if v == 'hs':
+                value = get_act_layer('hard_swish')
             elif v == 'r6':
                 value = get_act_layer('relu6')
-            elif v == 'hs':
-                value = get_act_layer('hard_swish')
+            elif v == 're':
+                value = get_act_layer('relu')
             elif v == 'sw':
                 value = get_act_layer('swish')
             else:
@@ -524,7 +523,7 @@ def _decode_block_str(block_str):
                 options[key] = value
 
     # if act_layer is None, the model default (passed to model init) will be used
-    act_layer = options['n'] if 'n' in options else None
+    act_layer = options.get('n')
     exp_kernel_size = _parse_ksize(options['a']) if 'a' in options else 1
     pw_kernel_size = _parse_ksize(options['p']) if 'p' in options else 1
     fake_in_chs = int(options['fc']) if 'fc' in options else 0  # FIXME hack to deal with in_chs issue in TPU def
@@ -546,7 +545,7 @@ def _decode_block_str(block_str):
         )
         if 'cc' in options:
             block_args['num_experts'] = int(options['cc'])
-    elif block_type == 'ds' or block_type == 'dsa':
+    elif block_type in ['ds', 'dsa']:
         block_args = dict(
             block_type=block_type,
             dw_kernel_size=_parse_ksize(options['k']),
@@ -636,7 +635,7 @@ def decode_arch_def(arch_def, depth_multiplier=1.0, depth_trunc='ceil', experts_
                 ba['num_experts'] *= experts_multiplier
             stack_args.append(ba)
             repeats.append(rep)
-        if fix_first_last and (stack_idx == 0 or stack_idx == len(arch_def) - 1):
+        if fix_first_last and stack_idx in [0, len(arch_def) - 1]:
             arch_args.append(_scale_stage_depth(stack_args, repeats, 1.0, depth_trunc))
         else:
             arch_args.append(_scale_stage_depth(stack_args, repeats, depth_multiplier, depth_trunc))
@@ -667,9 +666,7 @@ def initialize_weight_goog(m, n='', fix_group_fanout=True):
         m.bias.data.zero_()
     elif isinstance(m, nn.Linear):
         fan_out = m.weight.size(0)  # fan-out
-        fan_in = 0
-        if 'routing_fn' in n:
-            fan_in = m.weight.size(1)
+        fan_in = m.weight.size(1) if 'routing_fn' in n else 0
         init_range = 1.0 / math.sqrt(fan_in + fan_out)
         m.weight.data.uniform_(-init_range, init_range)
         m.bias.data.zero_()

@@ -55,10 +55,7 @@ class Resize(object):
         if img_scale is None:
             self.img_scale = None
         else:
-            if isinstance(img_scale, list):
-                self.img_scale = img_scale
-            else:
-                self.img_scale = [img_scale]
+            self.img_scale = img_scale if isinstance(img_scale, list) else [img_scale]
             assert mmcv.is_list_of(self.img_scale, tuple)
 
         if ratio_range is not None:
@@ -248,7 +245,7 @@ class RandomFlip(object):
 
     def __call__(self, results):
         if 'flip' not in results:
-            flip = True if np.random.rand() < self.flip_ratio else False
+            flip = np.random.rand() < self.flip_ratio
             results['flip'] = flip
         if 'flip_direction' not in results:
             results['flip_direction'] = self.direction
@@ -513,11 +510,10 @@ class PhotoMetricDistortion(object):
         # mode == 0 --> do random contrast first
         # mode == 1 --> do random contrast last
         mode = random.randint(2)
-        if mode == 1:
-            if random.randint(2):
-                alpha = random.uniform(self.contrast_lower,
-                                       self.contrast_upper)
-                img *= alpha
+        if mode == 1 and random.randint(2):
+            alpha = random.uniform(self.contrast_lower,
+                                   self.contrast_upper)
+            img *= alpha
 
         # convert color from BGR to HSV
         img = mmcv.bgr2hsv(img)
@@ -537,11 +533,10 @@ class PhotoMetricDistortion(object):
         img = mmcv.hsv2bgr(img)
 
         # random contrast
-        if mode == 0:
-            if random.randint(2):
-                alpha = random.uniform(self.contrast_lower,
-                                       self.contrast_upper)
-                img *= alpha
+        if mode == 0 and random.randint(2):
+            alpha = random.uniform(self.contrast_lower,
+                                   self.contrast_upper)
+            img *= alpha
 
         # randomly swap channels
         if random.randint(2):
@@ -583,10 +578,7 @@ class Expand(object):
                  prob=0.5):
         self.to_rgb = to_rgb
         self.ratio_range = ratio_range
-        if to_rgb:
-            self.mean = mean[::-1]
-        else:
-            self.mean = mean
+        self.mean = mean[::-1] if to_rgb else mean
         self.min_ratio, self.max_ratio = ratio_range
         self.seg_ignore_label = seg_ignore_label
         self.prob = prob
@@ -871,7 +863,7 @@ class Albu(object):
         if 'bboxes' in results:
             # to list of boxes
             if isinstance(results['bboxes'], np.ndarray):
-                results['bboxes'] = [x for x in results['bboxes']]
+                results['bboxes'] = list(results['bboxes'])
             # add pseudo-field for filtration
             if self.filter_lost_elements:
                 results['idx_mapper'] = np.arange(len(results['bboxes']))

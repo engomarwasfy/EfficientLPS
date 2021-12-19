@@ -47,9 +47,8 @@ class SingleRoIExtractor(nn.Module):
         layer_type = cfg.pop('type')
         assert hasattr(ops, layer_type)
         layer_cls = getattr(ops, layer_type)
-        roi_layers = nn.ModuleList(
+        return nn.ModuleList(
             [layer_cls(spatial_scale=1 / s, **cfg) for s in featmap_strides])
-        return roi_layers
 
     def map_roi_levels(self, rois, num_levels):
         """Map rois to corresponding feature levels by scales.
@@ -83,8 +82,7 @@ class SingleRoIExtractor(nn.Module):
         x2 = cx + new_w * 0.5 - 0.5
         y1 = cy - new_h * 0.5 + 0.5
         y2 = cy + new_h * 0.5 - 0.5
-        new_rois = torch.stack((rois[:, 0], x1, y1, x2, y2), dim=-1)
-        return new_rois
+        return torch.stack((rois[:, 0], x1, y1, x2, y2), dim=-1)
 
     @force_fp32(apply_to=('feats', ), out_fp16=True)
     def forward(self, feats, rois, roi_scale_factor=None):

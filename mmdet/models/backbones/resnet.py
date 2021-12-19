@@ -373,8 +373,7 @@ def make_res_layer(block,
             build_norm_layer(norm_cfg, planes * block.expansion)[1],
         )
 
-    layers = []
-    layers.append(
+    layers = [
         block(
             inplanes=inplanes,
             planes=planes,
@@ -389,8 +388,12 @@ def make_res_layer(block,
             gcb=gcb,
             sac=sac,
             rfp=rfp,
-            gen_attention=gen_attention if
-            (0 in gen_attention_blocks) else None))
+            gen_attention=gen_attention
+            if (0 in gen_attention_blocks)
+            else None,
+        )
+    ]
+
     inplanes = planes * block.expansion
     for i in range(1, blocks):
         layers.append(
@@ -643,9 +646,7 @@ class ResNet(nn.Module):
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
-            rfp_feat = None
-            if self.stage_with_rfp[i]:
-                rfp_feat = rfp_feats[i]
+            rfp_feat = rfp_feats[i] if self.stage_with_rfp[i] else None
             for layer in res_layer:
                 x = layer.rfp_forward(x, rfp_feat)
             if i in self.out_indices:

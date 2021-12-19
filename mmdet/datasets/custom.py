@@ -104,11 +104,11 @@ class CustomDataset(Dataset):
 
     def _filter_imgs(self, min_size=32):
         """Filter images too small."""
-        valid_inds = []
-        for i, img_info in enumerate(self.img_infos):
-            if min(img_info['width'], img_info['height']) >= min_size:
-                valid_inds.append(i)
-        return valid_inds
+        return [
+            i
+            for i, img_info in enumerate(self.img_infos)
+            if min(img_info['width'], img_info['height']) >= min_size
+        ]
 
     def _set_group_flag(self):
         """Set flag according to image aspect ratio.

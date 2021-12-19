@@ -86,7 +86,10 @@ class DPC(torch.nn.Module):
                     padding=padding,
                     norm_cfg=norm_cfg,
                     act_cfg=act_cfg,
-                    dilation=dilations[i]))
+                    dilation=padding,
+                )
+            )
+
         self.conv = ConvModule(
                     self.in_channels*5,
                     self.conv_out_channels,
@@ -137,7 +140,7 @@ class EfficientPSSemanticHead(nn.Module):
         self.norm_cfg = norm_cfg
         self.act_cfg = act_cfg
         self.fp16_enabled = False
-    
+
         if self.ohem is not None:
             assert (self.ohem >= 0 and self.ohem < 1)
 
@@ -145,8 +148,8 @@ class EfficientPSSemanticHead(nn.Module):
         self.lateral_convs_ls = nn.ModuleList()
         self.aligning_convs = nn.ModuleList()
         self.ss_idx = [3,2]
-        self.ls_idx = [1,0] 
-        for i in range(2):
+        self.ls_idx = [1,0]
+        for _ in range(2):
             self.lateral_convs_ss.append(
                 DPC(
                     self.in_channels,
@@ -154,7 +157,7 @@ class EfficientPSSemanticHead(nn.Module):
                     norm_cfg=self.norm_cfg,
                     act_cfg=self.act_cfg))
 
-        for i in range(2):
+        for _ in range(2):
             self.lateral_convs_ls.append(
                 LSFE(
                     self.in_channels,
@@ -162,7 +165,7 @@ class EfficientPSSemanticHead(nn.Module):
                     norm_cfg=self.norm_cfg,
                     act_cfg=self.act_cfg))
 
-        for i in range(2):
+        for _ in range(2):
             self.aligning_convs.append(
                   MC(
                     self.conv_out_channels,
@@ -210,7 +213,7 @@ class EfficientPSSemanticHead(nn.Module):
 
 
     def loss(self, mask_pred, labels):
-        loss = dict()
+        loss = {}
         labels = labels.squeeze(1).long()
         loss_semantic_seg = self.criterion(mask_pred, labels)
         loss_semantic_seg = loss_semantic_seg.view(-1)
@@ -219,7 +222,7 @@ class EfficientPSSemanticHead(nn.Module):
             top_k = int(ceil(loss_semantic_seg.numel() * self.ohem))
             if top_k != loss_semantic_seg.numel():
                     loss_semantic_seg, _ = loss_semantic_seg.topk(top_k)
- 
+
         loss_semantic_seg = loss_semantic_seg.mean()
         loss_semantic_seg *= self.loss_weight
         loss['loss_semantic_seg'] = loss_semantic_seg

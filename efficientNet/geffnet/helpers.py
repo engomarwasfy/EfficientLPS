@@ -20,10 +20,7 @@ def load_checkpoint(model, checkpoint_path):
         if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
             new_state_dict = OrderedDict()
             for k, v in checkpoint['state_dict'].items():
-                if k.startswith('module'):
-                    name = k[7:]  # remove `module.`
-                else:
-                    name = k
+                name = k[7:] if k.startswith('module') else k
                 new_state_dict[name] = v
             model.load_state_dict(new_state_dict)
         else:

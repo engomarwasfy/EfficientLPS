@@ -85,7 +85,7 @@ class BBoxHead(nn.Module):
         pos_gt_bboxes = [res.pos_gt_bboxes for res in sampling_results]
         pos_gt_labels = [res.pos_gt_labels for res in sampling_results]
         reg_classes = 1 if self.reg_class_agnostic else self.num_classes
-        cls_reg_targets = bbox_target(
+        return bbox_target(
             pos_proposals,
             neg_proposals,
             pos_gt_bboxes,
@@ -94,7 +94,6 @@ class BBoxHead(nn.Module):
             reg_classes,
             target_means=self.target_means,
             target_stds=self.target_stds)
-        return cls_reg_targets
 
     @force_fp32(apply_to=('cls_score', 'bbox_pred'))
     def loss(self,
@@ -105,7 +104,7 @@ class BBoxHead(nn.Module):
              bbox_targets,
              bbox_weights,
              reduction_override=None):
-        losses = dict()
+        losses = {}
         if cls_score is not None:
             avg_factor = max(torch.sum(label_weights > 0).float().item(), 1.)
             if cls_score.numel() > 0:
@@ -167,12 +166,11 @@ class BBoxHead(nn.Module):
 
         if cfg is None:
             return bboxes, scores
-        else:
-            det_bboxes, det_labels = multiclass_nms(bboxes, scores,
-                                                    cfg.score_thr, cfg.nms,
-                                                    cfg.max_per_img)
+        det_bboxes, det_labels = multiclass_nms(bboxes, scores,
+                                                cfg.score_thr, cfg.nms,
+                                                cfg.max_per_img)
 
-            return det_bboxes, det_labels
+        return det_bboxes, det_labels
 
     @force_fp32(apply_to=('bbox_preds', ))
     def refine_bboxes(self, rois, labels, bbox_preds, pos_is_gts, img_metas):
@@ -265,7 +263,7 @@ class BBoxHead(nn.Module):
         Returns:
             Tensor: Regressed bboxes, the same shape as input rois.
         """
-        assert rois.size(1) == 4 or rois.size(1) == 5, repr(rois.shape)
+        assert rois.size(1) in [4, 5], repr(rois.shape)
 
         if not self.reg_class_agnostic:
             label = label * 4
@@ -274,11 +272,8 @@ class BBoxHead(nn.Module):
         assert bbox_pred.size(1) == 4
 
         if rois.size(1) == 4:
-            new_rois = delta2bbox(rois, bbox_pred, self.target_means,
+            return delta2bbox(rois, bbox_pred, self.target_means,
                                   self.target_stds, img_meta['img_shape'])
-        else:
-            bboxes = delta2bbox(rois[:, 1:], bbox_pred, self.target_means,
-                                self.target_stds, img_meta['img_shape'])
-            new_rois = torch.cat((rois[:, [0]], bboxes), dim=1)
-
-        return new_rois
+        bboxes = delta2bbox(rois[:, 1:], bbox_pred, self.target_means,
+                            self.target_stds, img_meta['img_shape'])
+        return torch.cat((rois[:, [0]], bboxes), dim=1)

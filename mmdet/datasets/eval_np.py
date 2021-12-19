@@ -15,7 +15,7 @@ class PanopticEval:
 
   def __init__(self, n_classes, device=None, ignore=None, offset=2**32, min_points=30):
     self.n_classes = n_classes
-    assert (device == None)
+    assert device is None
     self.ignore = np.array(ignore, dtype=np.int64)
     self.include = np.array([n for n in range(self.n_classes) if n not in self.ignore], dtype=np.int64)
 
@@ -81,9 +81,7 @@ class PanopticEval:
     total_tp = tp.sum()
     total = tp[self.include].sum() + fp[self.include].sum()
     total = np.maximum(total, self.eps)
-    acc_mean = total_tp.astype(np.double) / total.astype(np.double)
-
-    return acc_mean  # returns "acc mean"
+    return total_tp.astype(np.double) / total.astype(np.double)
 
   ################################# IoU STUFF ##################################
   ##############################################################################
@@ -228,9 +226,8 @@ if __name__ == "__main__":
   N_person = N_dog
   sem_pred.extend([3 for i in range(N_person)])
   inst_pred.extend([35 for i in range(N_person)])
-  sem_gt.extend([4 for i in range(N_dog)])
-  inst_gt.extend([22 for i in range(N_dog)])
-
+  sem_gt.extend([4 for i in range(N_person)])
+  inst_gt.extend([22 for i in range(N_person)])
   # two persons in prediction, but three in gt
   N_person = 50
   sem_pred.extend([3 for i in range(6 * N_person)])

@@ -230,8 +230,7 @@ class LoadAnnotations(object):
         else:
             # rle
             rle = mask_ann
-        mask = maskUtils.decode(rle)
-        return mask
+        return maskUtils.decode(rle)
 
     def _load_masks(self, results):
         h, w = results['img_info']['height'], results['img_info']['width']

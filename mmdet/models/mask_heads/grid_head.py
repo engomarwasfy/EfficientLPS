@@ -42,7 +42,7 @@ class GridHead(nn.Module):
 
         assert self.grid_points >= 4
         self.grid_size = int(np.sqrt(self.grid_points))
-        if self.grid_size * self.grid_size != self.grid_points:
+        if self.grid_size ** 2 != self.grid_points:
             raise ValueError('grid_points must be a square number')
 
         # the predicted heatmap is half of whole_map_size
@@ -103,7 +103,7 @@ class GridHead(nn.Module):
                     neighbors.append((i + 1) * grid_size + j)
                 self.neighbor_points.append(tuple(neighbors))
         # total edges in the grid
-        self.num_edges = sum([len(p) for p in self.neighbor_points])
+        self.num_edges = sum(len(p) for p in self.neighbor_points)
 
         self.forder_trans = nn.ModuleList()  # first-order feature transition
         self.sorder_trans = nn.ModuleList()  # second-order feature transition
@@ -142,7 +142,7 @@ class GridHead(nn.Module):
 
     def init_weights(self):
         for m in self.modules():
-            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+            if isinstance(m, (nn.Conv2d, nn.Linear)):
                 # TODO: compare mode = "fan_in" or "fan_out"
                 kaiming_init(m)
         for m in self.modules():
@@ -274,9 +274,14 @@ class GridHead(nn.Module):
 
                 for x in range(cx - radius, cx + radius + 1):
                     for y in range(cy - radius, cy + radius + 1):
-                        if x >= 0 and x < map_size and y >= 0 and y < map_size:
-                            if (x - cx)**2 + (y - cy)**2 <= radius2:
-                                targets[i, j, y, x] = 1
+                        if (
+                            x >= 0
+                            and x < map_size
+                            and y >= 0
+                            and y < map_size
+                            and (x - cx) ** 2 + (y - cy) ** 2 <= radius2
+                        ):
+                            targets[i, j, y, x] = 1
         # reduce the target heatmap size by a half
         # proposed in Grid R-CNN Plus (https://arxiv.org/abs/1906.05688).
         sub_targets = []
@@ -331,7 +336,7 @@ class GridHead(nn.Module):
         abs_ys = (ys.float() + 0.5) / h * heights + y1
 
         # get the grid points indices that fall on the bbox boundaries
-        x1_inds = [i for i in range(self.grid_size)]
+        x1_inds = list(range(self.grid_size))
         y1_inds = [i * self.grid_size for i in range(self.grid_size)]
         x2_inds = [
             self.grid_points - self.grid_size + i

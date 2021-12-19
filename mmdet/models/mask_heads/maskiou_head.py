@@ -34,11 +34,7 @@ class MaskIoUHead(nn.Module):
 
         self.convs = nn.ModuleList()
         for i in range(num_convs):
-            if i == 0:
-                # concatenation of mask feature and mask prediction
-                in_channels = self.in_channels + 1
-            else:
-                in_channels = self.conv_out_channels
+            in_channels = self.in_channels + 1 if i == 0 else self.conv_out_channels
             stride = 2 if i == num_convs - 1 else 1
             self.convs.append(
                 nn.Conv2d(
@@ -85,8 +81,7 @@ class MaskIoUHead(nn.Module):
         x = x.view(x.size(0), -1)
         for fc in self.fcs:
             x = self.relu(fc(x))
-        mask_iou = self.fc_mask_iou(x)
-        return mask_iou
+        return self.fc_mask_iou(x)
 
     @force_fp32(apply_to=('mask_iou_pred', ))
     def loss(self, mask_iou_pred, mask_iou_targets):
@@ -144,9 +139,8 @@ class MaskIoUHead(nn.Module):
         # compute the mask area of the whole instance
         gt_full_areas = mask_targets.sum((-1, -2)) / (area_ratios + 1e-7)
 
-        mask_iou_targets = overlap_areas / (
+        return overlap_areas / (
             mask_pred_areas + gt_full_areas - overlap_areas)
-        return mask_iou_targets
 
     def _get_area_ratio(self, pos_proposals, pos_assigned_gt_inds, gt_masks):
         """Compute area ratio of the gt mask inside the proposal and the gt

@@ -56,11 +56,11 @@ def point_target(proposals_list,
          sampling=sampling,
          unmap_outputs=unmap_outputs)
     # no valid points
-    if any([labels is None for labels in all_labels]):
+    if any(labels is None for labels in all_labels):
         return None
     # sampled points of all images
-    num_total_pos = sum([max(inds.numel(), 1) for inds in pos_inds_list])
-    num_total_neg = sum([max(inds.numel(), 1) for inds in neg_inds_list])
+    num_total_pos = sum(max(inds.numel(), 1) for inds in pos_inds_list)
+    num_total_neg = sum(max(inds.numel(), 1) for inds in neg_inds_list)
     labels_list = images_to_levels(all_labels, num_level_proposals)
     label_weights_list = images_to_levels(all_label_weights,
                                           num_level_proposals)
@@ -131,10 +131,7 @@ def point_target_single(flat_proposals,
             labels[pos_inds] = 1
         else:
             labels[pos_inds] = gt_labels[sampling_result.pos_assigned_gt_inds]
-        if cfg.pos_weight <= 0:
-            label_weights[pos_inds] = 1.0
-        else:
-            label_weights[pos_inds] = cfg.pos_weight
+        label_weights[pos_inds] = 1.0 if cfg.pos_weight <= 0 else cfg.pos_weight
     if len(neg_inds) > 0:
         label_weights[neg_inds] = 1.0
 

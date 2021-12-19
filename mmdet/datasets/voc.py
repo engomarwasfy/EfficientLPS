@@ -37,10 +37,7 @@ class VOCDataset(XMLDataset):
         eval_results = {}
         if metric == 'mAP':
             assert isinstance(iou_thr, float)
-            if self.year == 2007:
-                ds_name = 'voc07'
-            else:
-                ds_name = self.dataset.CLASSES
+            ds_name = 'voc07' if self.year == 2007 else self.dataset.CLASSES
             mean_ap, _ = eval_map(
                 results,
                 annotations,

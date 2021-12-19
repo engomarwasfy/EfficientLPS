@@ -56,7 +56,7 @@ class CocoDataset(CustomDataset):
     def _filter_imgs(self, min_size=32):
         """Filter images too small or without ground truths."""
         valid_inds = []
-        ids_with_ann = set(_['image_id'] for _ in self.coco.anns.values())
+        ids_with_ann = {_['image_id'] for _ in self.coco.anns.values()}
         for i, img_info in enumerate(self.img_infos):
             if self.filter_empty_gt and self.img_ids[i] not in ids_with_ann:
                 continue
@@ -81,7 +81,7 @@ class CocoDataset(CustomDataset):
         gt_bboxes_ignore = []
         gt_masks_ann = []
 
-        for i, ann in enumerate(ann_info):
+        for ann in ann_info:
             if ann.get('ignore', False):
                 continue
             x1, y1, w, h = ann['bbox']
@@ -133,9 +133,7 @@ class CocoDataset(CustomDataset):
             img_id = self.img_ids[idx]
             bboxes = results[idx]
             for i in range(bboxes.shape[0]):
-                data = dict()
-                data['image_id'] = img_id
-                data['bbox'] = self.xyxy2xywh(bboxes[i])
+                data = {'image_id': img_id, 'bbox': self.xyxy2xywh(bboxes[i])}
                 data['score'] = float(bboxes[i][4])
                 data['category_id'] = 1
                 json_results.append(data)
@@ -149,9 +147,7 @@ class CocoDataset(CustomDataset):
             for label in range(len(result)):
                 bboxes = result[label]
                 for i in range(bboxes.shape[0]):
-                    data = dict()
-                    data['image_id'] = img_id
-                    data['bbox'] = self.xyxy2xywh(bboxes[i])
+                    data = {'image_id': img_id, 'bbox': self.xyxy2xywh(bboxes[i])}
                     data['score'] = float(bboxes[i][4])
                     data['category_id'] = self.cat_ids[label]
                     json_results.append(data)
@@ -167,9 +163,7 @@ class CocoDataset(CustomDataset):
                 # bbox results
                 bboxes = det[label]
                 for i in range(bboxes.shape[0]):
-                    data = dict()
-                    data['image_id'] = img_id
-                    data['bbox'] = self.xyxy2xywh(bboxes[i])
+                    data = {'image_id': img_id, 'bbox': self.xyxy2xywh(bboxes[i])}
                     data['score'] = float(bboxes[i][4])
                     data['category_id'] = self.cat_ids[label]
                     bbox_json_results.append(data)
@@ -183,7 +177,7 @@ class CocoDataset(CustomDataset):
                     segms = seg[label]
                     mask_score = [bbox[4] for bbox in bboxes]
                 for i in range(bboxes.shape[0]):
-                    data = dict()
+                    data = {}
                     data['image_id'] = img_id
                     data['bbox'] = self.xyxy2xywh(bboxes[i])
                     data['score'] = float(mask_score[i])
@@ -213,7 +207,7 @@ class CocoDataset(CustomDataset):
             dict[str: str]: Possible keys are "bbox", "segm", "proposal", and
                 values are corresponding filenames.
         """
-        result_files = dict()
+        result_files = {}
         if isinstance(results[0], list):
             json_results = self._det2json(results)
             result_files['bbox'] = '{}.{}.json'.format(outfile_prefix, 'bbox')
@@ -258,8 +252,7 @@ class CocoDataset(CustomDataset):
 
         recalls = eval_recalls(
             gt_bboxes, results, proposal_nums, iou_thrs, logger=logger)
-        ar = recalls.mean(axis=1)
-        return ar
+        return recalls.mean(axis=1)
 
     def format_results(self, results, jsonfile_prefix=None, **kwargs):
         """Format the results to json (standard format for COCO evaluation).
@@ -376,8 +369,6 @@ class CocoDataset(CustomDataset):
                 cocoEval.evaluate()
                 cocoEval.accumulate()
                 cocoEval.summarize()
-                if classwise:  # Compute per-category AP
-                    pass  # TODO
                 metric_items = [
                     'mAP', 'mAP_50', 'mAP_75', 'mAP_s', 'mAP_m', 'mAP_l'
                 ]

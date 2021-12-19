@@ -140,7 +140,7 @@ def force_fp32(apply_to=None, out_fp16=False):
                     else:
                         new_args.append(args[i])
             # convert the kwargs that need to be processed
-            new_kwargs = dict()
+            new_kwargs = {}
             if kwargs:
                 for arg_name, arg_value in kwargs.items():
                     if arg_name in args_to_cast:

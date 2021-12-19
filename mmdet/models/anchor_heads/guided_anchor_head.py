@@ -381,21 +381,19 @@ class GuidedAnchorHead(AnchorHead):
             self.anchoring_means,
             self.anchoring_stds,
             wh_ratio_clip=1e-6)
-        loss_shape = self.loss_shape(
+        return self.loss_shape(
             pred_anchors_,
             bbox_gts_,
             anchor_weights_,
             avg_factor=anchor_total_num)
-        return loss_shape
 
     def loss_loc_single(self, loc_pred, loc_target, loc_weight, loc_avg_factor,
                         cfg):
-        loss_loc = self.loss_loc(
+        return self.loss_loc(
             loc_pred.reshape(-1, 1),
             loc_target.reshape(-1, 1).long(),
             loc_weight.reshape(-1, 1),
             avg_factor=loc_avg_factor)
-        return loss_loc
 
     @force_fp32(
         apply_to=('cls_scores', 'bbox_preds', 'shape_preds', 'loc_preds'))
@@ -431,7 +429,7 @@ class GuidedAnchorHead(AnchorHead):
             featmap_sizes, shape_preds, loc_preds, img_metas, device=device)
 
         # get shape targets
-        sampling = False if not hasattr(cfg, 'ga_sampler') else True
+        sampling = bool(hasattr(cfg, 'ga_sampler'))
         shape_targets = ga_shape_target(
             approxs_list,
             inside_flag_list,
@@ -449,7 +447,7 @@ class GuidedAnchorHead(AnchorHead):
             anchor_fg_num if not sampling else anchor_fg_num + anchor_bg_num)
 
         # get anchor targets
-        sampling = False if self.cls_focal_loss else True
+        sampling = not self.cls_focal_loss
         label_channels = self.cls_out_channels if self.use_sigmoid_cls else 1
         cls_reg_targets = anchor_target(
             guided_anchors_list,
@@ -579,10 +577,7 @@ class GuidedAnchorHead(AnchorHead):
             # reshape scores and bbox_pred
             cls_score = cls_score.permute(1, 2,
                                           0).reshape(-1, self.cls_out_channels)
-            if self.use_sigmoid_cls:
-                scores = cls_score.sigmoid()
-            else:
-                scores = cls_score.softmax(-1)
+            scores = cls_score.sigmoid() if self.use_sigmoid_cls else cls_score.softmax(-1)
             bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, 4)
             # filter scores, bbox_pred w.r.t. mask.
             # anchors are filtered in get_anchors() beforehand.

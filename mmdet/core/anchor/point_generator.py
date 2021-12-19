@@ -18,8 +18,7 @@ class PointGenerator(object):
         shift_xx, shift_yy = self._meshgrid(shift_x, shift_y)
         stride = shift_x.new_full((shift_xx.shape[0], ), stride)
         shifts = torch.stack([shift_xx, shift_yy, stride], dim=-1)
-        all_points = shifts.to(device)
-        return all_points
+        return shifts.to(device)
 
     def valid_flags(self, featmap_size, valid_size, device='cuda'):
         feat_h, feat_w = featmap_size
@@ -30,5 +29,4 @@ class PointGenerator(object):
         valid_x[:valid_w] = 1
         valid_y[:valid_h] = 1
         valid_xx, valid_yy = self._meshgrid(valid_x, valid_y)
-        valid = valid_xx & valid_yy
-        return valid
+        return valid_xx & valid_yy

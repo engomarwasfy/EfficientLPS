@@ -45,24 +45,27 @@ class EfficientLPS(BaseDetector):
         assert rpn_head is not None
         assert bbox_roi_extractor is not None
         assert bbox_head is not None
-        assert mask_roi_extractor is not None           
+        assert mask_roi_extractor is not None
         assert mask_head is not None
         assert semantic_head is not None
 
         super(EfficientLPS, self).__init__()
 
-        self.eff_backbone_flag = False if 'efficient' not in backbone['type'] else True
+        self.eff_backbone_flag = 'efficient' in backbone['type']
 
-        if self.eff_backbone_flag == False:
+        if not self.eff_backbone_flag:
             self.backbone = builder.build_backbone(backbone)
         else:
-            self.backbone = geffnet.create_model(backbone['type'], 
-                                                 pretrained=True if pretrained is not None else False,
-                                                 se=False,
-                                                 in_chans=backbone['in_chans'], 
-                                                 act_layer=backbone['act_cfg']['type'],
-                                                 norm_layer=norm_cfg[backbone['norm_cfg']['type']][1],
-                                                 proximity=True)
+            self.backbone = geffnet.create_model(
+                backbone['type'],
+                pretrained=pretrained is not None,
+                se=False,
+                in_chans=backbone['in_chans'],
+                act_layer=backbone['act_cfg']['type'],
+                norm_layer=norm_cfg[backbone['norm_cfg']['type']][1],
+                proximity=True,
+            )
+
 
             self.ren = geffnet.create_model('tf_efficientnet_ren', 
                                             pretrained=False,
@@ -72,7 +75,7 @@ class EfficientLPS(BaseDetector):
                                             norm_layer=norm_cfg[backbone['norm_cfg']['type']][1],
                                             proximity=False)
 
-        
+
         self.neck = builder.build_neck(neck)
 
         if shared_head is not None:
@@ -93,7 +96,7 @@ class EfficientLPS(BaseDetector):
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
-       
+
         self.num_classes = semantic_head['num_classes']
         self.num_stuff = self.num_classes - bbox_head['num_classes'] + 1
         self.init_weights(pretrained=pretrained)
@@ -200,7 +203,7 @@ class EfficientLPS(BaseDetector):
         x, x_range = self.extract_feat(img, 
                               img_metas[0]['sensor_img_means'][0], 
                               img_metas[0]['sensor_img_stds'][0])
-        losses = dict()
+        losses = {}
 
         semantic_logits = self.semantic_head(x[:4], x_range[:4])
         loss_seg = self.semantic_head.loss(semantic_logits, gt_semantic_seg)
@@ -270,13 +273,13 @@ class EfficientLPS(BaseDetector):
 
             det_bboxes, det_labels = self.simple_test_bboxes(x, 
                 img_metas, proposal_list, self.test_cfg.rcnn, rescale=rescale)
-        
+
             if eval is not None:
-                       
+
                 panoptic_mask, cat_ = self.simple_test_mask_(
                     x, img_metas, det_bboxes, det_labels, semantic_logits, rescale=rescale)
                 result.append([panoptic_mask, cat_, img_metas])
-        
+
             else:          
                 bbox_results = bbox2result(det_bboxes, det_labels,
                                            self.bbox_head.num_classes)
@@ -286,9 +289,7 @@ class EfficientLPS(BaseDetector):
                 return bbox_results, mask_results
         else:
             for i in range(len(img_metas)):
-                new_x = []
-                for x_i in x:
-                    new_x.append(x_i[i:i+1])
+                new_x = [x_i[i:i+1] for x_i in x]
                 proposal_list = self.simple_test_rpn(new_x, [img_metas[i]],
                                      self.test_cfg.rpn)
 
@@ -311,8 +312,7 @@ class EfficientLPS(BaseDetector):
     def simple_test_rpn(self, x, img_metas, rpn_test_cfg):
         rpn_outs = self.rpn_head(x)
         proposal_inputs = rpn_outs + (img_metas, rpn_test_cfg)
-        proposal_list = self.rpn_head.get_bboxes(*proposal_inputs)
-        return proposal_list
+        return self.rpn_head.get_bboxes(*proposal_inputs)
 
     def simple_test_bboxes(self,
                     x,
@@ -350,28 +350,26 @@ class EfficientLPS(BaseDetector):
         ori_shape = img_metas[0]['ori_shape']
         scale_factor = img_metas[0]['scale_factor']
         if det_bboxes.shape[0] == 0:
-            segm_result = [[] for _ in range(self.mask_head.num_classes - 1)]
-        else:
-            # if det_bboxes is rescaled to the original image size, we need to
-            # rescale it back to the testing scale to obtain RoIs.
-            if rescale and not isinstance(scale_factor, float):
-                scale_factor = torch.from_numpy(scale_factor).to(
-                    det_bboxes.device)
-            _bboxes = (
-                det_bboxes[:, :4] * scale_factor if rescale else det_bboxes)
-            mask_rois = bbox2roi([_bboxes])
-            mask_feats = self.mask_roi_extractor(
-                x[:len(self.mask_roi_extractor.featmap_strides)], mask_rois)
-            if self.with_shared_head:
-                mask_feats = self.shared_head(mask_feats)
-            mask_pred = self.mask_head(mask_feats)
+            return [[] for _ in range(self.mask_head.num_classes - 1)]
+        # if det_bboxes is rescaled to the original image size, we need to
+        # rescale it back to the testing scale to obtain RoIs.
+        if rescale and not isinstance(scale_factor, float):
+            scale_factor = torch.from_numpy(scale_factor).to(
+                det_bboxes.device)
+        _bboxes = (
+            det_bboxes[:, :4] * scale_factor if rescale else det_bboxes)
+        mask_rois = bbox2roi([_bboxes])
+        mask_feats = self.mask_roi_extractor(
+            x[:len(self.mask_roi_extractor.featmap_strides)], mask_rois)
+        if self.with_shared_head:
+            mask_feats = self.shared_head(mask_feats)
+        mask_pred = self.mask_head(mask_feats)
 
-            segm_result = self.mask_head.get_seg_masks(mask_pred, _bboxes,
+        return self.mask_head.get_seg_masks(mask_pred, _bboxes,
                                                        det_labels,
                                                        self.test_cfg.rcnn,
                                                        ori_shape, scale_factor,
                                                        rescale)
-        return segm_result
 
     def simple_test_mask_(self,
                   x,

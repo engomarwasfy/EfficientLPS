@@ -67,7 +67,7 @@ def build_dataloader(dataset,
         worker_init_fn, num_workers=num_workers, rank=rank,
         seed=seed) if seed is not None else None
 
-    data_loader = DataLoader(
+    return DataLoader(
         dataset,
         batch_size=batch_size,
         sampler=sampler,
@@ -76,8 +76,6 @@ def build_dataloader(dataset,
         pin_memory=False,
         worker_init_fn=init_fn,
         **kwargs)
-
-    return data_loader
 
 
 def worker_init_fn(worker_id, num_workers, rank, seed):

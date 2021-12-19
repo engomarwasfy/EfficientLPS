@@ -15,12 +15,11 @@ def create_model(
 
     model_kwargs = dict(num_classes=num_classes, in_chans=in_chans, pretrained=pretrained, **kwargs)
 
-    if model_name in globals():
-        create_fn = globals()[model_name]
-        model = create_fn(**model_kwargs)
-    else:
+    if model_name not in globals():
         raise RuntimeError('Unknown model (%s)' % model_name)
 
+    create_fn = globals()[model_name]
+    model = create_fn(**model_kwargs)
     if checkpoint_path and not pretrained:
         load_checkpoint(model, checkpoint_path)
 

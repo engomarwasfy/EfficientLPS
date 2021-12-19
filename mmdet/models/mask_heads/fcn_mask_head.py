@@ -118,21 +118,19 @@ class FCNMaskHead(nn.Module):
             x = self.upsample(x)
             if self.upsample_method == 'deconv':
                 x = self.relu(x)
-        mask_pred = self.conv_logits(x)
-        return mask_pred
+        return self.conv_logits(x)
 
     def get_target(self, sampling_results, gt_masks, rcnn_train_cfg):
         pos_proposals = [res.pos_bboxes for res in sampling_results]
         pos_assigned_gt_inds = [
             res.pos_assigned_gt_inds for res in sampling_results
         ]
-        mask_targets = mask_target(pos_proposals, pos_assigned_gt_inds,
+        return mask_target(pos_proposals, pos_assigned_gt_inds,
                                    gt_masks, rcnn_train_cfg)
-        return mask_targets
 
     @force_fp32(apply_to=('mask_pred', ))
     def loss(self, mask_pred, mask_targets, labels):
-        loss = dict()
+        loss = {}
         if self.class_agnostic:
             loss_mask = self.loss_mask(mask_pred, mask_targets,
                                        torch.zeros_like(labels))
