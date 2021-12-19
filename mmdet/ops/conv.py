@@ -38,6 +38,4 @@ def build_conv_layer(cfg, *args, **kwargs):
     else:
         conv_layer = conv_cfg[layer_type]
 
-    layer = conv_layer(*args, **kwargs, **cfg_)
-
-    return layer
+    return conv_layer(*args, **kwargs, **cfg_)

@@ -43,7 +43,7 @@ class GroupSampler(Sampler):
         self.flag = dataset.flag.astype(np.int64)
         self.group_sizes = np.bincount(self.flag)
         self.num_samples = 0
-        for i, size in enumerate(self.group_sizes):
+        for size in self.group_sizes:
             self.num_samples += int(np.ceil(
                 size / self.samples_per_gpu)) * self.samples_per_gpu
 

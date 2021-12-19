@@ -40,8 +40,7 @@ class RPN(BaseDetector, RPNTestMixin):
 
     def forward_dummy(self, img):
         x = self.extract_feat(img)
-        rpn_outs = self.rpn_head(x)
-        return rpn_outs
+        return self.rpn_head(x)
 
     def forward_train(self,
                       img,
@@ -55,9 +54,8 @@ class RPN(BaseDetector, RPNTestMixin):
         rpn_outs = self.rpn_head(x)
 
         rpn_loss_inputs = rpn_outs + (gt_bboxes, img_metas, self.train_cfg.rpn)
-        losses = self.rpn_head.loss(
+        return self.rpn_head.loss(
             *rpn_loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
-        return losses
 
     def simple_test(self, img, img_metas, rescale=False):
         x = self.extract_feat(img)

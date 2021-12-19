@@ -75,10 +75,8 @@ def batch_processor(model, data, train_mode):
     losses = model(**data)
     loss, log_vars = parse_losses(losses)
 
-    outputs = dict(
+    return dict(
         loss=loss, log_vars=log_vars, num_samples=len(data['img'].data))
-
-    return outputs
 
 
 def train_detector(model,

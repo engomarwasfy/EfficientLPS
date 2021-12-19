@@ -97,12 +97,10 @@ class BaseSampler(metaclass=ABCMeta):
         if self.neg_pos_ub >= 0:
             _pos = max(1, num_sampled_pos)
             neg_upper_bound = int(self.neg_pos_ub * _pos)
-            if num_expected_neg > neg_upper_bound:
-                num_expected_neg = neg_upper_bound
+            num_expected_neg = min(num_expected_neg, neg_upper_bound)
         neg_inds = self.neg_sampler._sample_neg(
             assign_result, num_expected_neg, bboxes=bboxes, **kwargs)
         neg_inds = neg_inds.unique()
 
-        sampling_result = SamplingResult(pos_inds, neg_inds, bboxes, gt_bboxes,
+        return SamplingResult(pos_inds, neg_inds, bboxes, gt_bboxes,
                                          assign_result, gt_flags)
-        return sampling_result

@@ -120,7 +120,7 @@ class DoubleConvFCBBoxHead(BBoxHead):
     def _add_conv_branch(self):
         """Add the fc branch which consists of a sequential of conv layers"""
         branch_convs = nn.ModuleList()
-        for i in range(self.num_convs):
+        for _ in range(self.num_convs):
             branch_convs.append(
                 Bottleneck(
                     inplanes=self.conv_out_channels,

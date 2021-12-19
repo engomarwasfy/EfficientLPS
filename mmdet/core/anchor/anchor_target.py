@@ -62,11 +62,11 @@ def anchor_target(anchor_list,
          sampling=sampling,
          unmap_outputs=unmap_outputs)
     # no valid anchors
-    if any([labels is None for labels in all_labels]):
+    if any(labels is None for labels in all_labels):
         return None
     # sampled anchors of all images
-    num_total_pos = sum([max(inds.numel(), 1) for inds in pos_inds_list])
-    num_total_neg = sum([max(inds.numel(), 1) for inds in neg_inds_list])
+    num_total_pos = sum(max(inds.numel(), 1) for inds in pos_inds_list)
+    num_total_neg = sum(max(inds.numel(), 1) for inds in neg_inds_list)
     # split targets to a list w.r.t. multiple levels
     labels_list = images_to_levels(all_labels, num_level_anchors)
     label_weights_list = images_to_levels(all_label_weights, num_level_anchors)
@@ -140,10 +140,7 @@ def anchor_target_single(flat_anchors,
             labels[pos_inds] = 1
         else:
             labels[pos_inds] = gt_labels[sampling_result.pos_assigned_gt_inds]
-        if cfg.pos_weight <= 0:
-            label_weights[pos_inds] = 1.0
-        else:
-            label_weights[pos_inds] = cfg.pos_weight
+        label_weights[pos_inds] = 1.0 if cfg.pos_weight <= 0 else cfg.pos_weight
     if len(neg_inds) > 0:
         label_weights[neg_inds] = 1.0
 
@@ -164,15 +161,15 @@ def anchor_inside_flags(flat_anchors,
                         img_shape,
                         allowed_border=0):
     img_h, img_w = img_shape[:2]
-    if allowed_border >= 0:
-        inside_flags = valid_flags & \
-            (flat_anchors[:, 0] >= -allowed_border).type(torch.uint8) & \
-            (flat_anchors[:, 1] >= -allowed_border).type(torch.uint8) & \
-            (flat_anchors[:, 2] < img_w + allowed_border).type(torch.uint8) & \
-            (flat_anchors[:, 3] < img_h + allowed_border).type(torch.uint8)
-    else:
-        inside_flags = valid_flags
-    return inside_flags
+    return (
+        valid_flags
+        & (flat_anchors[:, 0] >= -allowed_border).type(torch.uint8)
+        & (flat_anchors[:, 1] >= -allowed_border).type(torch.uint8)
+        & (flat_anchors[:, 2] < img_w + allowed_border).type(torch.uint8)
+        & (flat_anchors[:, 3] < img_h + allowed_border).type(torch.uint8)
+        if allowed_border >= 0
+        else valid_flags
+    )
 
 
 def unmap(data, count, inds, fill=0):

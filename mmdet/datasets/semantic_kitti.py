@@ -114,11 +114,11 @@ class SemanticKITTIDataset(Dataset):
 
     def _filter_imgs(self, min_size=32):
         """Filter images too small."""
-        valid_inds = []
-        for i, img_info in enumerate(self.img_infos):
-            if min(img_info['width'], img_info['height']) >= min_size:
-                valid_inds.append(i)
-        return valid_inds
+        return [
+            i
+            for i, img_info in enumerate(self.img_infos)
+            if min(img_info['width'], img_info['height']) >= min_size
+        ]
 
     def _set_group_flag(self):
         """Set flag according to image aspect ratio.
@@ -183,7 +183,7 @@ class SemanticKITTIDataset(Dataset):
             label_paths = os.path.join(self.data_root, sequence, "labels")
             seq_label_names = sorted([os.path.join(label_paths, fn) for fn in os.listdir(label_paths) if fn.endswith(".label")])
             label_names.extend(seq_label_names)
-        
+
         # get predictions paths
         pred_names = []
         for sequence in test_sequences:
@@ -202,10 +202,10 @@ class SemanticKITTIDataset(Dataset):
         count = 0
         percent = 10
         for label_file, pred_file in zip(label_names, pred_names):
-            count = count + 1
+            count += 1
             if 100 * count / complete > percent:
                 print("{}% ".format(percent), end="", flush=True)
-                percent = percent + 10
+                percent += 10
 
             label = np.fromfile(label_file, dtype=np.uint32)
 
@@ -247,8 +247,7 @@ class SemanticKITTIDataset(Dataset):
 
         # class
 
-        output_dict["all"] = {}
-        output_dict["all"]["PQ"] = class_PQ
+        output_dict["all"] = {'PQ': class_PQ}
         output_dict["all"]["SQ"] = class_SQ
         output_dict["all"]["RQ"] = class_RQ
         output_dict["all"]["IoU"] = class_IoU
@@ -257,9 +256,7 @@ class SemanticKITTIDataset(Dataset):
 
         for idx, (pq, rq, sq, iou) in enumerate(zip(class_all_PQ, class_all_RQ, class_all_SQ, class_all_IoU)):
             class_str = self.class_strings[self.class_inv_remap[idx]]
-            output_dict[class_str] = {}
-            output_dict[class_str]["PQ"] = pq
-            output_dict[class_str]["SQ"] = sq
+            output_dict[class_str] = {'PQ': pq, 'SQ': sq}
             output_dict[class_str]["RQ"] = rq
             output_dict[class_str]["IoU"] = iou
 

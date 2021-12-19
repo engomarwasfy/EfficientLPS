@@ -38,8 +38,7 @@ def _is_static_pad(kernel_size, stride=1, dilation=1, **_):
 
 
 def _get_padding(kernel_size, stride=1, dilation=1, **_):
-    padding = ((stride - 1) + dilation * (kernel_size - 1)) // 2
-    return padding
+    return ((stride - 1) + dilation * (kernel_size - 1)) // 2
 
 
 def _calc_same_pad(i: int, k: int, s: int, d: int):
@@ -117,21 +116,20 @@ def get_padding_value(padding, kernel_size, **kwargs):
     if isinstance(padding, str):
         # for any string padding, the padding will be calculated for you, one of three ways
         padding = padding.lower()
-        if padding == 'same':
-            # TF compatible 'SAME' padding, has a performance and GPU memory allocation impact
-            if _is_static_pad(kernel_size, **kwargs):
-                # static case, no extra overhead
-                padding = _get_padding(kernel_size, **kwargs)
-            else:
-                # dynamic padding
-                padding = 0
-                dynamic = True
-        elif padding == 'valid':
+        if (
+            padding == 'same'
+            and _is_static_pad(kernel_size, **kwargs)
+            or padding not in ['same', 'valid']
+        ):
+            # static case, no extra overhead
+            padding = _get_padding(kernel_size, **kwargs)
+        elif padding == 'same' and not _is_static_pad(kernel_size, **kwargs):
+            # dynamic padding
+            padding = 0
+            dynamic = True
+        else:
             # 'VALID' padding, same as padding=0
             padding = 0
-        else:
-            # Default to PyTorch style 'same'-ish symmetric padding
-            padding = _get_padding(kernel_size, **kwargs)
     return padding, dynamic
 
 
@@ -139,14 +137,12 @@ def create_conv2d_pad(in_chs, out_chs, kernel_size, **kwargs):
     padding = kwargs.pop('padding', '')
     kwargs.setdefault('bias', False)
     padding, is_dynamic = get_padding_value(padding, kernel_size, **kwargs)
-    if is_dynamic:
-        if is_exportable():
-            assert not is_scriptable()
-            return Conv2dSameExport(in_chs, out_chs, kernel_size, **kwargs)
-        else:
-            return Conv2dSame(in_chs, out_chs, kernel_size, **kwargs)
-    else:
+    if not is_dynamic:
         return nn.Conv2d(in_chs, out_chs, kernel_size, padding=padding, **kwargs)
+    if not is_exportable():
+        return Conv2dSame(in_chs, out_chs, kernel_size, **kwargs)
+    assert not is_scriptable()
+    return Conv2dSameExport(in_chs, out_chs, kernel_size, **kwargs)
 
 
 class MixedConv2d(nn.ModuleDict):

@@ -393,11 +393,11 @@ class ATSSHead(AnchorHead):
              label_channels=label_channels,
              unmap_outputs=unmap_outputs)
         # no valid anchors
-        if any([labels is None for labels in all_labels]):
+        if any(labels is None for labels in all_labels):
             return None
         # sampled anchors of all images
-        num_total_pos = sum([max(inds.numel(), 1) for inds in pos_inds_list])
-        num_total_neg = sum([max(inds.numel(), 1) for inds in neg_inds_list])
+        num_total_pos = sum(max(inds.numel(), 1) for inds in pos_inds_list)
+        num_total_neg = sum(max(inds.numel(), 1) for inds in neg_inds_list)
         # split targets to a list w.r.t. multiple levels
         anchors_list = images_to_levels(all_anchors, num_level_anchors)
         labels_list = images_to_levels(all_labels, num_level_anchors)
@@ -460,10 +460,7 @@ class ATSSHead(AnchorHead):
             else:
                 labels[pos_inds] = gt_labels[
                     sampling_result.pos_assigned_gt_inds]
-            if cfg.pos_weight <= 0:
-                label_weights[pos_inds] = 1.0
-            else:
-                label_weights[pos_inds] = cfg.pos_weight
+            label_weights[pos_inds] = 1.0 if cfg.pos_weight <= 0 else cfg.pos_weight
         if len(neg_inds) > 0:
             label_weights[neg_inds] = 1.0
 
@@ -483,7 +480,6 @@ class ATSSHead(AnchorHead):
 
     def get_num_level_anchors_inside(self, num_level_anchors, inside_flags):
         split_inside_flags = torch.split(inside_flags, num_level_anchors)
-        num_level_anchors_inside = [
+        return [
             int(flags.sum()) for flags in split_inside_flags
         ]
-        return num_level_anchors_inside

@@ -19,10 +19,9 @@ class MSELoss(nn.Module):
         self.loss_weight = loss_weight
 
     def forward(self, pred, target, weight=None, avg_factor=None):
-        loss = self.loss_weight * mse_loss(
+        return self.loss_weight * mse_loss(
             pred,
             target,
             weight,
             reduction=self.reduction,
             avg_factor=avg_factor)
-        return loss

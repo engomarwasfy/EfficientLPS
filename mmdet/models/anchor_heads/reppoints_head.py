@@ -93,8 +93,10 @@ class RepPointsHead(nn.Module):
         # we use deformable conv to extract points features
         self.dcn_kernel = int(np.sqrt(num_points))
         self.dcn_pad = int((self.dcn_kernel - 1) / 2)
-        assert self.dcn_kernel * self.dcn_kernel == num_points, \
-            'The points number should be a square number.'
+        assert (
+            self.dcn_kernel ** 2 == num_points
+        ), 'The points number should be a square number.'
+
         assert self.dcn_kernel % 2 == 1, \
             'The points number should be an odd square number.'
         dcn_base = np.arange(-self.dcn_pad,
@@ -315,7 +317,7 @@ class RepPointsHead(nn.Module):
 
         # for each image, we compute valid flags of multi level grids
         valid_flag_list = []
-        for img_id, img_meta in enumerate(img_metas):
+        for img_meta in img_metas:
             multi_level_flags = []
             for i in range(num_levels):
                 point_stride = self.point_strides[i]
@@ -334,7 +336,7 @@ class RepPointsHead(nn.Module):
         """Get bboxes according to center points. Only used in MaxIOUAssigner.
         """
         bbox_list = []
-        for i_img, point in enumerate(point_list):
+        for point in point_list:
             bbox = []
             for i_lvl in range(len(self.point_strides)):
                 scale = self.point_base_scale * self.point_strides[i_lvl] * 0.5
@@ -496,12 +498,11 @@ class RepPointsHead(nn.Module):
             self.point_strides,
             num_total_samples_init=num_total_samples_init,
             num_total_samples_refine=num_total_samples_refine)
-        loss_dict_all = {
+        return {
             'loss_cls': losses_cls,
             'loss_pts_init': losses_pts_init,
             'loss_pts_refine': losses_pts_refine
         }
-        return loss_dict_all
 
     def get_bboxes(self,
                    cls_scores,
@@ -556,10 +557,7 @@ class RepPointsHead(nn.Module):
             assert cls_score.size()[-2:] == bbox_pred.size()[-2:]
             cls_score = cls_score.permute(1, 2,
                                           0).reshape(-1, self.cls_out_channels)
-            if self.use_sigmoid_cls:
-                scores = cls_score.sigmoid()
-            else:
-                scores = cls_score.softmax(-1)
+            scores = cls_score.sigmoid() if self.use_sigmoid_cls else cls_score.softmax(-1)
             bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, 4)
             nms_pre = cfg.get('nms_pre', -1)
             if nms_pre > 0 and scores.shape[0] > nms_pre:
@@ -587,10 +585,9 @@ class RepPointsHead(nn.Module):
         if self.use_sigmoid_cls:
             padding = mlvl_scores.new_zeros(mlvl_scores.shape[0], 1)
             mlvl_scores = torch.cat([padding, mlvl_scores], dim=1)
-        if nms:
-            det_bboxes, det_labels = multiclass_nms(mlvl_bboxes, mlvl_scores,
-                                                    cfg.score_thr, cfg.nms,
-                                                    cfg.max_per_img)
-            return det_bboxes, det_labels
-        else:
+        if not nms:
             return mlvl_bboxes, mlvl_scores
+        det_bboxes, det_labels = multiclass_nms(mlvl_bboxes, mlvl_scores,
+                                                cfg.score_thr, cfg.nms,
+                                                cfg.max_per_img)
+        return det_bboxes, det_labels

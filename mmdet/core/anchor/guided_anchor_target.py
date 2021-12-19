@@ -125,8 +125,10 @@ def ga_loc_target(gt_bboxes_list,
         # set negative regions with weight 0.1
         all_loc_weights[lvl_id][all_loc_weights[lvl_id] < 0] = 0.1
     # loc average factor to balance loss
-    loc_avg_factor = sum(
-        [t.size(0) * t.size(-1) * t.size(-2) for t in all_loc_targets]) / 200
+    loc_avg_factor = (
+        sum(t.size(0) * t.size(-1) * t.size(-2) for t in all_loc_targets) / 200
+    )
+
     return all_loc_targets, all_loc_weights, loc_avg_factor
 
 
@@ -189,11 +191,11 @@ def ga_shape_target(approx_list,
          sampling=sampling,
          unmap_outputs=unmap_outputs)
     # no valid anchors
-    if any([bbox_anchors is None for bbox_anchors in all_bbox_anchors]):
+    if any(bbox_anchors is None for bbox_anchors in all_bbox_anchors):
         return None
     # sampled anchors of all images
-    num_total_pos = sum([max(inds.numel(), 1) for inds in pos_inds_list])
-    num_total_neg = sum([max(inds.numel(), 1) for inds in neg_inds_list])
+    num_total_pos = sum(max(inds.numel(), 1) for inds in pos_inds_list)
+    num_total_neg = sum(max(inds.numel(), 1) for inds in neg_inds_list)
     # split targets to a list w.r.t. multiple levels
     bbox_anchors_list = images_to_levels(all_bbox_anchors, num_level_squares)
     bbox_gts_list = images_to_levels(all_bbox_gts, num_level_squares)
@@ -260,10 +262,7 @@ def ga_shape_target_single(flat_approxs,
     bbox_assigner = build_assigner(cfg.ga_assigner)
     assign_result = bbox_assigner.assign(approxs, squares, approxs_per_octave,
                                          gt_bboxes, gt_bboxes_ignore)
-    if sampling:
-        bbox_sampler = build_sampler(cfg.ga_sampler)
-    else:
-        bbox_sampler = PseudoSampler()
+    bbox_sampler = build_sampler(cfg.ga_sampler) if sampling else PseudoSampler()
     sampling_result = bbox_sampler.sample(assign_result, squares, gt_bboxes)
 
     bbox_anchors = torch.zeros_like(squares)

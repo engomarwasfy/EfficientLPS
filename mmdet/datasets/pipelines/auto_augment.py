@@ -150,7 +150,7 @@ class Shear(object):
         elif isinstance(img_fill_val, tuple):
             assert len(img_fill_val) == 3, 'img_fill_val as tuple must ' \
                 f'have 3 elements. got {len(img_fill_val)}.'
-            img_fill_val = tuple([float(val) for val in img_fill_val])
+            img_fill_val = tuple(float(val) for val in img_fill_val)
         else:
             raise ValueError(
                 'img_fill_val must be float or tuple with 3 elements.')
@@ -380,7 +380,7 @@ class Rotate(object):
         elif isinstance(img_fill_val, tuple):
             assert len(img_fill_val) == 3, 'img_fill_val as tuple must '\
                 f'have 3 elements. got {len(img_fill_val)}.'
-            img_fill_val = tuple([float(val) for val in img_fill_val])
+            img_fill_val = tuple(float(val) for val in img_fill_val)
         else:
             raise ValueError(
                 'img_fill_val must be float or tuple with 3 elements.')
@@ -587,7 +587,7 @@ class Translate(object):
         elif isinstance(img_fill_val, tuple):
             assert len(img_fill_val) == 3, \
                 'img_fill_val as tuple must have 3 elements.'
-            img_fill_val = tuple([float(val) for val in img_fill_val])
+            img_fill_val = tuple(float(val) for val in img_fill_val)
         else:
             raise ValueError('img_fill_val must be type float or tuple.')
         assert np.all([0 <= val <= 255 for val in img_fill_val]), \

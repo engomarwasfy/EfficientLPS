@@ -32,16 +32,19 @@ class TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
                  pretrained=None):
         super(TwoStageDetector, self).__init__()
 
-        self.eff_backbone_flag = False if 'efficient' not in backbone['type'] else True
+        self.eff_backbone_flag = 'efficient' in backbone['type']
 
-        if self.eff_backbone_flag == False:
+        if not self.eff_backbone_flag:
             self.backbone = builder.build_backbone(backbone)
         else:
-            self.backbone = geffnet.create_model(backbone['type'], 
-                                                 pretrained=True if pretrained is not None else False,
-                                                 se=False, 
-                                                 act_layer=backbone['act_cfg']['type'],
-                                                 norm_layer=norm_cfg[backbone['norm_cfg']['type']][1]) 
+            self.backbone = geffnet.create_model(
+                backbone['type'],
+                pretrained=pretrained is not None,
+                se=False,
+                act_layer=backbone['act_cfg']['type'],
+                norm_layer=norm_cfg[backbone['norm_cfg']['type']][1],
+            )
+             
 
         if neck is not None:
             self.neck = builder.build_neck(neck)
@@ -178,7 +181,7 @@ class TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
         """
         x = self.extract_feat(img)
 
-        losses = dict()
+        losses = {}
 
         # RPN forward and loss
         if self.with_rpn:
@@ -295,15 +298,14 @@ class TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         if not self.with_mask:
             return bbox_results
-        else:
-            segm_results = await self.async_test_mask(
-                x,
-                img_meta,
-                det_bboxes,
-                det_labels,
-                rescale=rescale,
-                mask_test_cfg=self.test_cfg.get('mask'))
-            return bbox_results, segm_results
+        segm_results = await self.async_test_mask(
+            x,
+            img_meta,
+            det_bboxes,
+            det_labels,
+            rescale=rescale,
+            mask_test_cfg=self.test_cfg.get('mask'))
+        return bbox_results, segm_results
 
     def simple_test(self, img, img_metas, proposals=None, rescale=False):
         """Test without augmentation."""
@@ -324,10 +326,9 @@ class TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
 
         if not self.with_mask:
             return bbox_results
-        else:
-            segm_results = self.simple_test_mask(
-                x, img_metas, det_bboxes, det_labels, rescale=rescale)
-            return bbox_results, segm_results
+        segm_results = self.simple_test_mask(
+            x, img_metas, det_bboxes, det_labels, rescale=rescale)
+        return bbox_results, segm_results
 
     def aug_test(self, imgs, img_metas, rescale=False):
         """Test with augmentations.

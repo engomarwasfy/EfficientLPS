@@ -10,7 +10,7 @@ from .bbox_overlaps import bbox_overlaps
 def _recalls(all_ious, proposal_nums, thrs):
 
     img_num = all_ious.shape[0]
-    total_gt_num = sum([ious.shape[0] for ious in all_ious])
+    total_gt_num = sum(ious.shape[0] for ious in all_ious)
 
     _ious = np.zeros((proposal_nums.size, total_gt_num), dtype=np.float32)
     for k, proposal_num in enumerate(proposal_nums):
@@ -154,11 +154,7 @@ def plot_num_recall(recalls, proposal_nums):
         _proposal_nums = proposal_nums.tolist()
     else:
         _proposal_nums = proposal_nums
-    if isinstance(recalls, np.ndarray):
-        _recalls = recalls.tolist()
-    else:
-        _recalls = recalls
-
+    _recalls = recalls.tolist() if isinstance(recalls, np.ndarray) else recalls
     import matplotlib.pyplot as plt
     f = plt.figure()
     plt.plot([0] + _proposal_nums, [0] + _recalls)
@@ -175,15 +171,8 @@ def plot_iou_recall(recalls, iou_thrs):
         recalls(ndarray or list): shape (k,)
         iou_thrs(ndarray or list): same shape as `recalls`
     """
-    if isinstance(iou_thrs, np.ndarray):
-        _iou_thrs = iou_thrs.tolist()
-    else:
-        _iou_thrs = iou_thrs
-    if isinstance(recalls, np.ndarray):
-        _recalls = recalls.tolist()
-    else:
-        _recalls = recalls
-
+    _iou_thrs = iou_thrs.tolist() if isinstance(iou_thrs, np.ndarray) else iou_thrs
+    _recalls = recalls.tolist() if isinstance(recalls, np.ndarray) else recalls
     import matplotlib.pyplot as plt
     f = plt.figure()
     plt.plot(_iou_thrs + [1.0], _recalls + [0.])

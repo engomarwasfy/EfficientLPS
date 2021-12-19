@@ -60,8 +60,7 @@ class ResLayer(nn.Module):
     @auto_fp16()
     def forward(self, x):
         res_layer = getattr(self, 'layer{}'.format(self.stage + 1))
-        out = res_layer(x)
-        return out
+        return res_layer(x)
 
     def train(self, mode=True):
         super(ResLayer, self).train(mode)

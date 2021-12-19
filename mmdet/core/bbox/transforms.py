@@ -107,8 +107,7 @@ def delta2bbox(rois,
         y1 = y1.clamp(min=0, max=max_shape[0] - 1)
         x2 = x2.clamp(min=0, max=max_shape[1] - 1)
         y2 = y2.clamp(min=0, max=max_shape[0] - 1)
-    bboxes = torch.stack([x1, y1, x2, y2], dim=-1).view_as(deltas)
-    return bboxes
+    return torch.stack([x1, y1, x2, y2], dim=-1).view_as(deltas)
 
 
 def bbox_flip(bboxes, img_shape):
@@ -193,10 +192,9 @@ def bbox2result(bboxes, labels, num_classes):
         return [
             np.zeros((0, 5), dtype=np.float32) for i in range(num_classes - 1)
         ]
-    else:
-        bboxes = bboxes.cpu().numpy()
-        labels = labels.cpu().numpy()
-        return [bboxes[labels == i, :] for i in range(num_classes - 1)]
+    bboxes = bboxes.cpu().numpy()
+    labels = labels.cpu().numpy()
+    return [bboxes[labels == i, :] for i in range(num_classes - 1)]
 
 
 def distance2bbox(points, distance, max_shape=None):

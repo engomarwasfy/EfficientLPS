@@ -122,7 +122,7 @@ class AnchorHead(nn.Module):
 
         # for each image, we compute valid flags of multi level anchors
         valid_flag_list = []
-        for img_id, img_meta in enumerate(img_metas):
+        for img_meta in img_metas:
             multi_level_flags = []
             for i in range(num_levels):
                 anchor_stride = self.anchor_strides[i]
@@ -296,10 +296,7 @@ class AnchorHead(nn.Module):
             assert cls_score.size()[-2:] == bbox_pred.size()[-2:]
             cls_score = cls_score.permute(1, 2,
                                           0).reshape(-1, self.cls_out_channels)
-            if self.use_sigmoid_cls:
-                scores = cls_score.sigmoid()
-            else:
-                scores = cls_score.softmax(-1)
+            scores = cls_score.sigmoid() if self.use_sigmoid_cls else cls_score.softmax(-1)
             bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, 4)
             nms_pre = cfg.get('nms_pre', -1)
             if nms_pre > 0 and scores.shape[0] > nms_pre:

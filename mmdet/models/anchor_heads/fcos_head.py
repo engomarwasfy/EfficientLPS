@@ -301,12 +301,12 @@ class FCOSHead(nn.Module):
         Returns:
             tuple: points of each image.
         """
-        mlvl_points = []
-        for i in range(len(featmap_sizes)):
-            mlvl_points.append(
-                self.get_points_single(featmap_sizes[i], self.strides[i],
-                                       dtype, device))
-        return mlvl_points
+        return [
+            self.get_points_single(
+                featmap_sizes[i], self.strides[i], dtype, device
+            )
+            for i in range(len(featmap_sizes))
+        ]
 
     def get_points_single(self, featmap_size, stride, dtype, device):
         h, w = featmap_size
@@ -315,9 +315,8 @@ class FCOSHead(nn.Module):
         y_range = torch.arange(
             0, h * stride, stride, dtype=dtype, device=device)
         y, x = torch.meshgrid(y_range, x_range)
-        points = torch.stack(
+        return torch.stack(
             (x.reshape(-1), y.reshape(-1)), dim=-1) + stride // 2
-        return points
 
     def fcos_target(self, points, gt_bboxes_list, gt_labels_list):
         assert len(points) == len(self.regress_ranges)

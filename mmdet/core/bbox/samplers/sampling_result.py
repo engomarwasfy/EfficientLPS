@@ -134,21 +134,12 @@ class SamplingResult(util_mixins.NiceRepr):
             gt_bboxes = gt_bboxes.squeeze()
             bboxes = bboxes.squeeze()
 
-        if assign_result.labels is None:
-            gt_labels = None
-        else:
-            gt_labels = None  # todo
-
-        if gt_labels is None:
-            add_gt_as_proposals = False
-        else:
-            add_gt_as_proposals = True  # make probabalistic?
-
+        gt_labels = None
+        add_gt_as_proposals = gt_labels is not None
         sampler = RandomSampler(
             num,
             pos_fraction,
             neg_pos_ubo=neg_pos_ub,
             add_gt_as_proposals=add_gt_as_proposals,
             rng=rng)
-        self = sampler.sample(assign_result, bboxes, gt_bboxes, gt_labels)
-        return self
+        return sampler.sample(assign_result, bboxes, gt_bboxes, gt_labels)

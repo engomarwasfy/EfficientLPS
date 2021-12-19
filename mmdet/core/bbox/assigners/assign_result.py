@@ -70,8 +70,7 @@ class AssignResult(util_mixins.NiceRepr):
         """
         Create a "nice" summary string describing this assign result
         """
-        parts = []
-        parts.append('num_gts={!r}'.format(self.num_gts))
+        parts = ['num_gts={!r}'.format(self.num_gts)]
         if self.gt_inds is None:
             parts.append('gt_inds={!r}'.format(self.gt_inds))
         else:
@@ -145,7 +144,7 @@ class AssignResult(util_mixins.NiceRepr):
 
             assigned_idxs = np.where(is_assigned)[0]
             rng.shuffle(assigned_idxs)
-            assigned_idxs = assigned_idxs[0:n_assigned]
+            assigned_idxs = assigned_idxs[:n_assigned]
             assigned_idxs.sort()
 
             is_assigned[:] = 0
@@ -177,8 +176,7 @@ class AssignResult(util_mixins.NiceRepr):
             else:
                 labels = None
 
-        self = cls(num_gts, gt_inds, max_overlaps, labels)
-        return self
+        return cls(num_gts, gt_inds, max_overlaps, labels)
 
     def add_gt_(self, gt_labels):
         self_inds = torch.arange(

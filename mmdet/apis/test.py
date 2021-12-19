@@ -14,16 +14,13 @@ def single_gpu_test(model, data_loader, show=False, eval=None):
     results = []
     dataset = data_loader.dataset
     prog_bar = mmcv.ProgressBar(len(dataset))
-    for i, data in enumerate(data_loader):
+    for data in data_loader:
         with torch.no_grad():
             if eval is not None:
                 data['eval'] = eval
             result = model(return_loss=False, rescale=not show, **data)
         if eval is None:
             results.append(result)
-        else:
-            pass
-
         if show:
             model.module.show_result(data, result)
 
@@ -66,16 +63,13 @@ def multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False, eval=None
             result = model(return_loss=False, rescale=True, **data)
         if eval is None:
             results.append(result)
-        else:
-            pass
-
         if rank == 0:
             batch_size = data['img'][0].size(0)
             for _ in range(batch_size * world_size):
                 prog_bar.update()
 
     # collect results from all ranks
-   
+
     if gpu_collect:
         results = collect_results_gpu(results, len(dataset))
     else:
@@ -105,24 +99,22 @@ def collect_results_cpu(result_part, size, tmpdir=None):
     # dump the part result to the dir
     mmcv.dump(result_part, osp.join(tmpdir, 'part_{}.pkl'.format(rank)))
     dist.barrier()
-    # collect all parts
     if rank != 0:
         return None
-    else:
-        # load results of all parts from tmp dir
-        part_list = []
-        for i in range(world_size):
-            part_file = osp.join(tmpdir, 'part_{}.pkl'.format(i))
-            part_list.append(mmcv.load(part_file))
-        # sort the results
-        ordered_results = []
-        for res in zip(*part_list):
-            ordered_results.extend(list(res))
-        # the dataloader may pad some samples
-        ordered_results = ordered_results[:size]
-        # remove tmp dir
-        shutil.rmtree(tmpdir)
-        return ordered_results
+    # load results of all parts from tmp dir
+    part_list = []
+    for i in range(world_size):
+        part_file = osp.join(tmpdir, 'part_{}.pkl'.format(i))
+        part_list.append(mmcv.load(part_file))
+    # sort the results
+    ordered_results = []
+    for res in zip(*part_list):
+        ordered_results.extend(list(res))
+    # the dataloader may pad some samples
+    ordered_results = ordered_results[:size]
+    # remove tmp dir
+    shutil.rmtree(tmpdir)
+    return ordered_results
 
 
 def collect_results_gpu(result_part, size):
@@ -145,10 +137,11 @@ def collect_results_gpu(result_part, size):
     dist.all_gather(part_recv_list, part_send)
 
     if rank == 0:
-        part_list = []
-        for recv, shape in zip(part_recv_list, shape_list):
-            part_list.append(
-                pickle.loads(recv[:shape[0]].cpu().numpy().tobytes()))
+        part_list = [
+            pickle.loads(recv[: shape[0]].cpu().numpy().tobytes())
+            for recv, shape in zip(part_recv_list, shape_list)
+        ]
+
         # sort the results
         ordered_results = []
         for res in zip(*part_list):

@@ -19,9 +19,7 @@ class ConcatDataset(_ConcatDataset):
         super(ConcatDataset, self).__init__(datasets)
         self.CLASSES = datasets[0].CLASSES
         if hasattr(datasets[0], 'flag'):
-            flags = []
-            for i in range(0, len(datasets)):
-                flags.append(datasets[i].flag)
+            flags = [datasets[i].flag for i in range(len(datasets))]
             self.flag = np.concatenate(flags)
 
 
